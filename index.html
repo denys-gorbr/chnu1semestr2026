@@ -546,7 +546,7 @@
             return d;
         }
 
-        function updateWidget() {
+                function updateWidget() {
             const now = new Date();
             
             document.getElementById('clock').innerText = 
@@ -566,8 +566,8 @@
             let timerLabel = "До початку пар:";
             let targetTime = null;
 
-            function findLessonForSlot(slotNumber) {
-                const lessons7 = timetable[savedSub7]?.[currentWeekType]?.[dayNameEng] || [];
+            function findLessonForSlot(slotNumber, targetWeekType, targetDayName) {
+                const lessons7 = timetable[savedSub7]?.[targetWeekType]?.[targetDayName] || [];
                 let lesson = lessons7.find(l => l.number === slotNumber);
                 
                 if (lesson) {
@@ -580,7 +580,7 @@
                 }
 
                 for (const subKey in timetable) {
-                    const altLessons = timetable[subKey]?.[currentWeekType]?.[dayNameEng] || [];
+                    const altLessons = timetable[subKey]?.[targetWeekType]?.[targetDayName] || [];
                     const altLesson = altLessons.find(l => l.number === slotNumber);
                     if (altLesson) {
                         if (altLesson.subject.includes('[ЛЕКЦІЯ]')) {
@@ -594,23 +594,24 @@
                 return null;
             }
 
+            // Шукаємо пари на сьогодні
             for (let i = 0; i < lessonsTime.length; i++) {
                 const slot = lessonsTime[i];
                 const start = parseTime(slot.start);
                 const end = parseTime(slot.end);
 
                 if (now >= start && now <= end) {
-                    currentLessonObj = findLessonForSlot(slot.number);
+                    currentLessonObj = findLessonForSlot(slot.number, currentWeekType, dayNameEng);
                     targetTime = end;
                     timerLabel = "До кінця пари:";
                     
                     for (let j = i + 1; j < lessonsTime.length; j++) {
-                        nextLessonObj = findLessonForSlot(lessonsTime[j].number);
+                        nextLessonObj = findLessonForSlot(lessonsTime[j].number, currentWeekType, dayNameEng);
                         if (nextLessonObj) break;
                     }
                     break;
                 } else if (now < start) {
-                    nextLessonObj = findLessonForSlot(slot.number);
+                    nextLessonObj = findLessonForSlot(slot.number, currentWeekType, dayNameEng);
                     if (nextLessonObj) {
                         targetTime = start;
                         timerLabel = "До початку пари:";
@@ -619,42 +620,94 @@
                 }
             }
 
-            if (!nextLessonObj && now > parseTime(lessonsTime[lessonsTime.length - 1].end)) {
-                timerLabel = "Пари на сьогодні завершено";
-                document.getElementById('countdown').style.display = 'none';
-                document.getElementById('timer-label').innerText = timerLabel;
-            } else {
-                document.getElementById('countdown').style.display = 'block';
-                document.getElementById('timer-label').innerText = timerLabel;
-            }
+            // Перевіряємо, чи пари на сьогодні закінчилися (або сьогодні вихідний)
+            const lastSlot = lessonsTime[lessonsTime.length - 1];
+            const isDayFinished = now > parseTime(lastSlot.end) || dayIndex === 0 || dayIndex === 6;
 
-            if (currentLessonObj) {
-                document.getElementById('current-lesson').innerText = "(" + currentLessonObj.number + ") " + currentLessonObj.subject;
-                document.getElementById('current-auditory').innerText = currentLessonObj.auditory;
-                document.getElementById('current-teacher').innerText = currentLessonObj.teacher;
-            } else {
-                document.getElementById('current-lesson').innerText = "Немає пари (перерва/вікно)";
+            if (!nextLessonObj && isDayFinished) {
+                // Визначаємо наступний робочий день та його тип тижня
+                let nextDate = new Date(now);
+                nextDate.setDate(now.getDate() + 1);
+                
+                // Пропускаємо вихідні, якщо завтра субота (6) або неділя (0)
+                while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+                    nextDate.setDate(nextDate.getDate() + 1);
+                }
+
+                const nextDayIndex = nextDate.getDay();
+                const nextDayNameEng = daysMap[nextDayIndex];
+                const nextWeekType = getStudyWeek(nextDate);
+
+                timerLabel = "Розклад на " + daysUa[nextDayIndex].toLowerCase() + " (" + nextWeekType + "-й тижд.):";
+                document.getElementById('timer-label').innerText = timerLabel;
+                
+                // Генеруємо повний список пар на завтра
+                let tomorrowHTML = '<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">';
+                let hasLessonsTomorrow = false;
+
+                for (let i = 0; i < lessonsTime.length; i++) {
+                    const slot = lessonsTime[i];
+                    const lesson = findLessonForSlot(slot.number, nextWeekType, nextDayNameEng);
+                    if (lesson) {
+                        hasLessonsTomorrow = true;
+                        tomorrowHTML += '<div style="background: #0f172a; padding: 10px; border-radius: 12px; border: 1px solid #334155;">' +
+                            '<div style="font-size: 0.8rem; color: var(--text-muted);">' + slot.start + ' - ' + slot.end + ' | Пара ' + slot.number + '</div>' +
+                            '<div style="font-size: 0.95rem; font-weight: 600; margin-top: 2px;">' + lesson.subject + '</div>' +
+                            '<div style="font-size: 0.85rem; color: var(--accent-green); margin-top: 2px;">Ауд. ' + lesson.auditory + ' <span style="color: var(--text-muted);">| ' + lesson.teacher + '</span></div>' +
+                        '</div>';
+                    }
+                }
+
+                if (!hasLessonsTomorrow) {
+                    tomorrowHTML += '<div style="text-align: center; color: var(--accent-green); padding: 10px;">Завтра немає пар, відпочивай! 🎉</div>';
+                }
+                tomorrowHTML += '</div>';
+
+                // Ховаємо стандартні блоки віджета і показуємо загальний розклад у таймері
+                document.getElementById('countdown').style.display = 'none';
+                document.getElementById('timer-container').innerHTML = '<div class="block-title" id="timer-label">' + timerLabel + '</div>' + tomorrowHTML;
+                
+                // Скидаємо блоки поточної/наступної пари
+                document.getElementById('current-lesson').innerText = "Пари завершено";
                 document.getElementById('current-auditory').innerText = "--";
                 document.getElementById('current-teacher').innerText = "--";
-            }
-
-            if (nextLessonObj) {
-                document.getElementById('next-lesson').innerText = "(" + nextLessonObj.number + ") " + nextLessonObj.subject;
-                document.getElementById('next-auditory').innerText = nextLessonObj.auditory;
-                document.getElementById('next-teacher').innerText = nextLessonObj.teacher;
-            } else {
-                document.getElementById('next-lesson').innerText = "Немає";
+                document.getElementById('next-lesson').innerText = "Дивись розклад нижче";
                 document.getElementById('next-auditory').innerText = "--";
                 document.getElementById('next-teacher').innerText = "--";
-            }
+            } else {
+                // Стандартне відображення в реальному часі (якщо день ще триває)
+                document.getElementById('countdown').style.display = 'block';
+                document.getElementById('timer-container').innerHTML = '<div id="timer-label" class="block-title">' + timerLabel + '</div>' +
+                    '<div id="countdown" class="countdown">00:00</div>';
 
-            if (targetTime) {
-                const diff = targetTime - now;
-                if (diff > 0) {
-                    const mins = Math.floor(diff / 1000 / 60);
-                    const secs = Math.floor((diff / 1000) % 60);
-                    document.getElementById('countdown').innerText = 
-                        String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+                if (currentLessonObj) {
+                    document.getElementById('current-lesson').innerText = "(" + currentLessonObj.number + ") " + currentLessonObj.subject;
+                    document.getElementById('current-auditory').innerText = currentLessonObj.auditory;
+                    document.getElementById('current-teacher').innerText = currentLessonObj.teacher;
+                } else {
+                    document.getElementById('current-lesson').innerText = "Немає пари (перерва/вікно)";
+                    document.getElementById('current-auditory').innerText = "--";
+                    document.getElementById('current-teacher').innerText = "--";
+                }
+
+                if (nextLessonObj) {
+                    document.getElementById('next-lesson').innerText = "(" + nextLessonObj.number + ") " + nextLessonObj.subject;
+                    document.getElementById('next-auditory').innerText = nextLessonObj.auditory;
+                    document.getElementById('next-teacher').innerText = nextLessonObj.teacher;
+                } else {
+                    document.getElementById('next-lesson').innerText = "Немає";
+                    document.getElementById('next-auditory').innerText = "--";
+                    document.getElementById('next-teacher').innerText = "--";
+                }
+
+                if (targetTime) {
+                    const diff = targetTime - now;
+                    if (diff > 0) {
+                        const mins = Math.floor(diff / 1000 / 60);
+                        const secs = Math.floor((diff / 1000) % 60);
+                        document.getElementById('countdown').innerText = 
+                            String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+                    }
                 }
             }
         }
