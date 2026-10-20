@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мій Розклад - Інженерія ПЗ</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-green: #4ade80;
+            --border: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .settings-panel {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 12px 16px;
+            width: 100%;
+            max-width: 360px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+        }
+
+        .settings-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .select-box {
+            display: flex;
+            gap: 8px;
+        }
+
+        select {
+            flex: 1;
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .widget {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 20px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .day-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .time-now {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .block {
+            margin-bottom: 16px;
+        }
+
+        .block-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .lesson-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .meta-info {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .auditory {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .countdown {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent);
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="settings-panel">
+        <div class="settings-title">Твої підгрупи за розкладом:</div>
+        <div class="select-box" style="flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Поділ на 7 підгруп:</span>
+                <select id="sub7-select" onchange="changeSettings()" style="max-width: 180px;">
+                    <option value="143(1)">Підгрупа 143(1)</option>
+                    <option value="143(2)">Підгрупа 143(2)</option>
+                    <option value="143(3)">Підгрупа 143(3)</option>
+                    <option value="143(4)">Підгрупа 143(4)</option>
+                    <option value="143(5)">Підгрупа 143(5)</option>
+                    <option value="143(6)">Підгрупа 143(6)</option>
+                    <option value="143(7)">Підгрупа 143(7)</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Поділ на 5 підгруп:</span>
+                <select id="sub5-select" onchange="changeSettings()" style="max-width: 180px;">
+                    <option value="група 1">Група 1</option>
+                    <option value="група 2">Група 2</option>
+                    <option value="група 3">Група 3</option>
+                    <option value="група 4">Група 4</option>
+                    <option value="група 5">Група 5</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="widget">
+        <div class="header">
+            <div id="current-day" class="day-title">Завантаження...</div>
+            <div id="clock" class="time-now">00:00:00</div>
+        </div>
+
+        <div class="block">
+            <div id="week-type" class="block-title" style="color: var(--accent);">Визначення тижня...</div>
+        </div>
+
+        <div class="block">
+            <div class="block-title">Зараз іде:</div>
+            <div id="current-lesson" class="lesson-name">Немає пари</div>
+            <div class="meta-info">
+                <span id="current-auditory" class="auditory">--</span>
+                <span id="current-teacher">--</span>
+            </div>
+        </div>
+
+        <div class="block">
+            <div class="block-title">Наступна пара:</div>
+            <div id="next-lesson" class="lesson-name">Немає пари</div>
+            <div class="meta-info">
+                <span id="next-auditory" class="auditory">--</span>
+                <span id="next-teacher">--</span>
+            </div>
+        </div>
+
+        <div id="timer-container" class="block" style="margin-bottom: 0;">
+            <div id="timer-label" class="block-title">До кінця пари:</div>
+            <div id="countdown" class="countdown">00:00</div>
+        </div>
+    </div>
+
+    <script>
+        const lessonsTime = [
+            {"number": 1, "start": "08:20", "end": "09:40"},
+            {"number": 2, "start": "09:50", "end": "11:10"},
+            {"number": 3, "start": "11:30", "end": "12:50"},
+            {"number": 4, "start": "13:00", "end": "14:20"},
+            {"number": 5, "start": "14:40", "end": "16:00"},
+            {"number": 6, "start": "16:10", "end": "17:30"},
+            {"number": 7, "start": "17:40", "end": "19:00"}
+        ];
+
+        const timetable = {
+            "143(1)": {
+                "1": {
+                    "Monday": [
+                        {"number": 1, "subject": "Практичний курс англійської мови", "teacher": "Мудра О.В.", "auditory": "8-212"},
+                        {"number": 2, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Дмитращук К.М.", "auditory": "8-101"},
+                        {"number": 3, "subject": "Структури даних, алгоритми та ООП", "teacher": "Валь О.О.", "auditory": "8-207"}
+                    ],
+                    "Tuesday": [
+                        {"number": 2, "subject": "Дискретні структури в інженерії ПЗ [група 1]", "teacher": "Валь О.Д.", "auditory": "8-106"},
+                        {"number": 3, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк Л.М., Валь О.О.", "auditory": "9-3"},
+                        {"number": 4, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Дмитращук К.М.", "auditory": "8-120"}
+                    ],
+                    "Wednesday": [
+                        {"number": 1, "subject": "[ЛЕКЦІЯ] Дискретні структури в інженерії ПЗ", "teacher": "Валь О.Д.", "auditory": "9-3"},
+                        {"number": 2, "subject": "[ЛЕКЦІЯ] Лінійна алгебра та аналітична геометрія", "teacher": "Тимофієва Є.М.", "auditory": "9-3"},
+                        {"number": 3, "subject": "Лінійна алгебра та аналітична геометрія [група 1]", "teacher": "Кириченко О.Л.", "auditory": "8-212"},
+                        {"number": 4, "subject": "Основи комп'ютерної арифметики та кодування даних [група 1]", "teacher": "Газдюк К.П.", "auditory": "8-111"}
+                    ],
+                    "Thursday": [
+                        {"number": 1, "subject": "Дискретні структури в інженерії ПЗ [група 1]", "teacher": "Валь О.Д.", "auditory": "8-106"},
+                        {"number": 2, "subject": "Структури даних, алгоритми та ООП", "teacher": "Валь О.О.", "auditory": "8-207"},
+                        {"number": 3, "subject": "Практичний курс англійської мови", "teacher": "Тоненчук Т.В.", "auditory": "8-211"}
+                    ],
+                    "Friday": [
+                        {"number": 1, "subject": "Основи національного спротиву", "teacher": "Військова кафедра", "auditory": "Військ. каф."},
+                        {"number": 2, "subject": "Основи національного спротиву", "teacher": "Військова кафедра", "auditory": "Військ. каф."},
+                        {"number": 3, "subject": "Основи національного спротиву", "teacher": "Військова кафедра", "auditory": "Військ. каф."},
+                        {"number": 4, "subject": "Основи національного спротиву", "teacher": "Військова кафедра", "auditory": "Військ. каф."},
+                        {"number": 7, "subject": "[ЛЕКЦІЯ] Проєктування інтерактивних UI/UX систем", "teacher": "Комісарчук В.В.", "auditory": "Онлайн"}
+                    ]
+                },
+                "2": {
+                    "Monday": [
+                        {"number": 1, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"},
+                        {"number": 2, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Танащишена І.Є.", "auditory": "8-325"},
+                        {"number": 3, "subject": "Лінійна алгебра та аналітична геометрія [група 1]", "teacher": "Кириченко О.Л.", "auditory": "8-106"},
+                        {"number": 4, "subject": "Структури даних, алгоритми та ООП", "teacher": "Дяконенко Б.В.", "auditory": "8-209"}
+                    ],
+                    "Tuesday": [
+                        {"number": 4, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "8-120"}
+                    ],
+                    "Wednesday": [
+                        {"number": 4, "subject": "Основи комп'ютерної арифметики та кодування даних", "teacher": "Комісарчук В.В.", "auditory": "8-106"}
+                    ],
+                    "Thursday": [
+                        {"number": 1, "subject": "Практичний курс англійської мови", "teacher": "Цинтар Н.В.", "auditory": "8-116"},
+                        {"number": 2, "subject": "Структури даних, алгоритми та ООП", "teacher": "Шумиляк Л.М.", "auditory": "8-209"},
+                        {"number": 4, "subject": "Практичний курс англійської мови", "teacher": "Тоненчук Т.В.", "auditory": "8-211"}
+                    ],
+                    "Friday": [
+                        {"number": 1, "subject": "[ЛЕКЦІЯ] Основи комп'ютерної арифметики", "teacher": "Газдюк К.П.", "auditory": "9-3"},
+                        {"number": 2, "subject": "[ЛЕКЦІЯ] Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "9-3"},
+                        {"number": 3, "subject": "Основи комп'ютерної арифметики [група 1]", "teacher": "Газдюк К.П.", "auditory": "8-111"},
+                        {"number": 4, "subject": "Проєктування інтерактивних UI/UX систем", "teacher": "Танащишена І.Є.", "auditory": "8-209"}
+                    ]
+                }
+            },
+            "143(2)": {
+                "1": {
+                    "Monday": [
+                        {"number": 2, "subject": "Практичний курс англійської мови", "teacher": "Мудра О.В.", "auditory": "8-212"},
+                        {"number": 3, "subject": "Основи комп'ютерної арифметики та кодування даних [група 2]", "teacher": "Комісарчук В.В.", "auditory": "8-106"}
+                    ],
+                    "Tuesday": [
+                        {"number": 1, "subject": "Проєктування інтерактивних UI/UX систем", "teacher": "Єсипчук А.Є.", "auditory": "8-209"},
+                        {"number": 2, "subject": "Дискретні структури в інженерії ПЗ [група 2]", "teacher": "Тарновецька О.Ю.", "auditory": "8-120"},
+                        {"number": 3, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"}
+                    ],
+                    "Wednesday": [
+                        {"number": 1, "subject": "[ЛЕКЦІЯ] Дискретні структури в інженерії ПЗ", "teacher": "Валь О.Д.", "auditory": "9-3"},
+                        {"number": 2, "subject": "[ЛЕКЦІЯ] Лінійна алгебра та аналітична геометрія", "teacher": "Тимофієва Є.М.", "auditory": "9-3"},
+                        {"number": 3, "subject": "Лінійна алгебра та аналітична геометрія [група 2]", "teacher": "Тимофієва Є.М.", "auditory": "8-211"}
+                    ],
+                    "Thursday": [
+                        {"number": 1, "subject": "Дискретні структури в інженерії ПЗ [група 2]", "teacher": "Тарновецька О.Ю.", "auditory": "8-120"},
+                        {"number": 2, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "8-101"},
+                        {"number": 3, "subject": "Структури даних, алгоритми та ООП", "teacher": "Дяконенко Б.В.", "auditory": "8-209"}
+                    ],
+                    "Friday": [
+                        {"number": 7, "subject": "[ЛЕКЦІЯ] Проєктування інтерактивних UI/UX систем", "teacher": "Комісарчук В.В.", "auditory": "Онлайн"}
+                    ]
+                },
+                "2": {
+                    "Monday": [
+                        {"number": 1, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"},
+                        {"number": 3, "subject": "Лінійна алгебра та аналітична геометрія [група 2]", "teacher": "Тимофієва Є.М.", "auditory": "8-111"},
+                        {"number": 4, "subject": "Структури даних, алгоритми та ООП", "teacher": "Дяконенко Б.В.", "auditory": "8-116"}
+                    ],
+                    "Tuesday": [
+                        {"number": 4, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "8-120"}
+                    ],
+                    "Wednesday": [
+                        {"number": 4, "subject": "Основи комп'ютерної арифметики", "teacher": "Комісарчук В.В.", "auditory": "8-106"}
+                    ],
+                    "Thursday": [
+                        {"number": 2, "subject": "Структури даних, алгоритми та ООП", "teacher": "Шумиляк Л.М.", "auditory": "8-116"}
+                    ],
+                    "Friday": [
+                        {"number": 1, "subject": "[ЛЕКЦІЯ] Основи комп'ютерної арифметики", "teacher": "Газдюк К.П.", "auditory": "9-3"},
+                        {"number": 2, "subject": "[ЛЕКЦІЯ] Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "9-3"},
+                        {"number": 3, "subject": "Основи комп'ютерної арифметики [група 2]", "teacher": "Комісарчук В.В.", "auditory": "8-106"}
+                    ]
+                }
+            },
+            "143(3)": {
+                "1": {
+                    "Monday": [
+                        {"number": 1, "subject": "Практичний курс англійської мови", "teacher": "Мудра О.В.", "auditory": "8-212"}
+                    ],
+                    "Tuesday": [
+                        {"number": 1, "subject": "Лінійна алгебра та аналітична геометрія [група 3]", "teacher": "Тимофієва Є.М.", "auditory": "8-224"},
+                        {"number": 3, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"},
+{"number": 4, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Тарновецька О.Ю.", "auditory": "8-106"}
+],
+"Wednesday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Дискретні структури в інженерії ПЗ", "teacher": "Валь О.Д.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Лінійна алгебра та аналітична геометрія", "teacher": "Тимофієва Є.М.", "auditory": "9-3"},
+{"number": 3, "subject": "Дискретні структури в інженерії ПЗ [група 3]", "teacher": "Комісарчук В.В.", "auditory": "8-106"}
+],
+"Thursday": [
+{"number": 1, "subject": "Структури даних, алгоритми та ООП", "teacher": "Шумиляк Л.М.", "auditory": "8-209"},
+{"number": 2, "subject": "Проєктування інтерактивних UI/UX систем", "teacher": "Танащишена І.Є.", "auditory": "8-202"},
+{"number": 3, "subject": "Дискретні структури в інженерії ПЗ [група 3]", "teacher": "Комісарчук В.В.", "auditory": "8-106"}
+],
+"Friday": [
+{"number": 7, "subject": "[ЛЕКЦІЯ] Проєктування інтерактивних UI/UX систем", "teacher": "Комісарчук В.В.", "auditory": "Онлайн"}
+]
+},
+"2": {
+"Monday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"}
+],
+"Tuesday": [],
+"Wednesday": [],
+"Thursday": [
+{"number": 1, "subject": "Практичний курс англійської мови", "teacher": "Цинтар Н.В.", "auditory": "8-116"},
+{"number": 2, "subject": "Структури даних, алгоритми та ООП", "teacher": "Шумиляк Л.М.", "auditory": "8-209"}
+],
+"Friday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Основи комп'ютерної арифметики", "teacher": "Газдюк К.П.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "9-3"},
+{"number": 3, "subject": "Практичний курс англійської мови", "teacher": "Близнюк Г.В.", "auditory": "8-211"},
+{"number": 4, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Тарновецька О.Ю.", "auditory": "8-207"}
+]
+}
+},
+"143(4)": {
+"1": {
+"Monday": [
+{"number": 1, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Танащишена І.Є.", "auditory": "8-207"},
+{"number": 2, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Танащишена І.Є.", "auditory": "8-209"}
+],
+"Tuesday": [
+{"number": 2, "subject": "Основи комп'ютерної арифметики [група 4]", "teacher": "Газдюк К.П.", "auditory": "8-111"},
+{"number": 3, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"}
+],
+"Wednesday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Дискретні структури в інженерії ПЗ", "teacher": "Валь О.Д.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Лінійна алгебра та аналітична геометрія", "teacher": "Тимофієва Є.М.", "auditory": "9-3"},
+{"number": 3, "subject": "Дискретні структури в інженерії ПЗ [група 4]", "teacher": "Тарновецька О.Ю.", "auditory": "8-120"}
+],
+"Thursday": [
+{"number": 2, "subject": "Практичний курс англійської мови", "teacher": "Цинтар Н.В.", "auditory": "8-116"},
+{"number": 3, "subject": "Дискретні структури в інженерії ПЗ [група 4]", "teacher": "Тарновецька О.Ю.", "auditory": "8-111"}
+],
+"Friday": [
+{"number": 7, "subject": "[ЛЕКЦІЯ] Проєктування інтерактивних UI/UX систем", "teacher": "Комісарчук В.В.", "auditory": "Онлайн"}
+]
+},
+"2": {
+"Monday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"},
+{"number": 2, "subject": "Лінійна алгебра та аналітична геометрія [група 4]", "teacher": "Тимофієва Є.М.", "auditory": "8-101"}
+],
+"Tuesday": [],
+"Wednesday": [
+{"number": 4, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Дмитращук К.М.", "auditory": "8-101"}
+],
+"Thursday": [],
+"Friday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Основи комп'ютерної арифметики", "teacher": "Газдюк К.П.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "9-3"},
+{"number": 3, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Танащишена І.Є.", "auditory": "8-101"},
+{"number": 4, "subject": "Практичний курс англійської мови", "teacher": "Близнюк Г.В.", "auditory": "8-211"},
+{"number": 3, "subject": "Основи комп'ютерної арифметики [група 4]", "teacher": "Комісарчук В.В.", "auditory": "8-106"}
+]
+}
+},
+"143(5)": {
+"1": {
+"Monday": [],
+"Tuesday": [
+{"number": 1, "subject": "Дискретні структури в інженерії ПЗ [група 5]", "teacher": "Валь О.Д.", "auditory": "8-106"},
+{"number": 2, "subject": "Лінійна алгебра та аналітична геометрія [група 5]", "teacher": "Тимофієва Є.М.", "auditory": "8-211"},
+{"number": 3, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"},
+{"number": 4, "subject": "Структури даних, алгоритми та ООП", "teacher": "Шумиляк Л.М.", "auditory": "8-207"}
+],
+"Wednesday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Дискретні структури в інженерії ПЗ", "teacher": "Валь О.Д.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Лінійна алгебра та аналітична геометрія", "teacher": "Тимофієва Є.М.", "auditory": "9-3"},
+{"number": 3, "subject": "Основи комп'ютерної арифметики та кодування даних [група 5]", "teacher": "Газдюк К.П.", "auditory": "8-111"}
+],
+"Thursday": [
+{"number": 1, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Танащишена І.Є.", "auditory": "8-211"},
+{"number": 2, "subject": "Структури даних, алгоритми та ООП", "teacher": "Шумиляк Л.М.", "auditory": "8-209"}
+],
+"Friday": [
+{"number": 7, "subject": "[ЛЕКЦІЯ] Проєктування інтерактивних UI/UX систем", "teacher": "Комісарчук В.В.", "auditory": "Online"}
+]
+},
+"2": {
+"Monday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"},
+{"number": 2, "subject": "Лінійна алгебра та аналітична геометрія [група 5]", "teacher": "Кириченко О.Л.", "auditory": "8-106"}
+],
+"Tuesday": [],
+"Wednesday": [],
+"Thursday": [
+{"number": 2, "subject": "Проєткування інтерактивних UI/UX систем", "teacher": "Томюк Г.М.", "auditory": "8-211"}
+],
+"Friday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Основи комп'ютерної арифметики", "teacher": "Газдюк К.П.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "9-3"},
+{"number": 4, "subject": "Дискретні структури в інженерії ПЗ [група 5]", "teacher": "Валь О.Д.", "auditory": "8-106"}
+]
+}
+},
+"143(6)": {
+"1": {
+"Monday": [],
+"Tuesday": [
+{"number": 4, "subject": "Структури даних, алгоритми та ООП", "teacher": "Дяконенко Б.В.", "auditory": "8-209"}
+],
+"Wednesday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Дискретні структури в інженерії ПЗ", "teacher": "Валь О.Д.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Лінійна алгебра та аналітична геометрія", "teacher": "Тимофієва Є.М.", "auditory": "9-3"}
+],
+"Thursday": [
+{"number": 1, "subject": "Практичний курс англійської мови", "teacher": "Тоненчук Т.В.", "auditory": "8-211"},
+{"number": 2, "subject": "Практичний курс англійської мови", "teacher": "Тоненчук Т.В.", "auditory": "8-211"}
+],
+"Friday": [
+{"number": 7, "subject": "[ЛЕКЦІЯ] Проєктування інтерактивних UI/UX систем", "teacher": "Комісарчук В.В.", "auditory": "Онлайн"}
+]
+},
+"2": {
+"Monday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"}
+],
+"Tuesday": [],
+"Wednesday": [],
+"Thursday": [
+{"number": 1, "subject": "Практичний курс англійської мови", "teacher": "Томюк Г.М.", "auditory": "8-202"},
+{"number": 2, "subject": "Проєктування інтерактивних UI/UX систем", "teacher": "Томюк Г.М.", "auditory": "8-202"}
+],
+"Friday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Основи комп'ютерної арифметики", "teacher": "Газдюк К.П.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "9-3"}
+]
+}
+},
+"143(7)": {
+"1": {
+"Monday": [
+{"number": 1, "subject": "Проєктування інтерактивних UI/UX систем", "teacher": "Шумиляк Л.М.", "auditory": "8-209"}
+],
+"Tuesday": [
+{"number": 2, "subject": "Лінійна алгебра та аналітична геометрія", "teacher": "Кириченко О.Л.", "auditory": "8-212"},
+{"number": 3, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"}
+],
+"Wednesday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Дискретні структури в інженерії ПЗ", "teacher": "Валь О.Д.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Лінійна алгебра та аналітична геометрія", "teacher": "Тимофієва Є.М.", "auditory": "9-3"}
+],
+"Thursday": [
+{"number": 1, "subject": "Структури даних, алгоритми та ООП", "teacher": "Валь О.О.", "auditory": "8-207"},
+{"number": 2, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Тарновецька О.Ю.", "auditory": "8-325"},
+{"number": 4, "subject": "Практичний курс англійської мови", "teacher": "Цинтар Н.В.", "auditory": "8-116"}
+],
+"Friday": [
+{"number": 7, "subject": "[ЛЕКЦІЯ] Проєктування інтерактивних UI/UX систем", "teacher": "Комісарчук В.В.", "auditory": "Онлайн"}
+]
+},
+"2": {
+"Monday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Структури даних, алгоритми та ООП", "teacher": "Шумиляк, Валь", "auditory": "9-3"}
+],
+"Tuesday": [],
+"Wednesday": [],
+"Thursday": [
+{"number": 1, "subject": "Проєткування інтерактивних UI/UX систем", "teacher": "Валь О.О.", "auditory": "8-207"}
+],
+"Friday": [
+{"number": 1, "subject": "[ЛЕКЦІЯ] Основи комп'ютерної арифметики", "teacher": "Газдюк К.П.", "auditory": "9-3"},
+{"number": 2, "subject": "[ЛЕКЦІЯ] Групова динаміка, комунікації та Team Building", "teacher": "Комісарчук В.В.", "auditory": "9-3"},
+{"number": 3, "subject": "Групова динаміка, комунікації та Team Building", "teacher": "Тарновецька О.Ю.", "auditory": "8-103"}
+]
+}
+}
+};
+        const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const daysUa = ["Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота"];
+
+        function getStudyWeek(date) {
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const days = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
+            const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+            return (weekNumber % 2 === 0) ? "2" : "1";
+        }
+
+        let savedSub7 = localStorage.getItem('selectedSub7') || "143(1)";
+        let savedSub5 = localStorage.getItem('selectedSub5') || "група 1";
+        
+        document.getElementById('sub7-select').value = savedSub7;
+        document.getElementById('sub5-select').value = savedSub5;
+
+        function changeSettings() {
+            savedSub7 = document.getElementById('sub7-select').value;
+            savedSub5 = document.getElementById('sub5-select').value;
+            localStorage.setItem('selectedSub7', savedSub7);
+            localStorage.setItem('selectedSub5', savedSub5);
+            updateWidget();
+        }
+
+        function parseTime(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const d = new Date();
+            d.setHours(h, m, 0, 0);
+            return d;
+        }
+
+        function updateWidget() {
+            const now = new Date();
+            
+            document.getElementById('clock').innerText = 
+                String(now.getHours()).padStart(2, '0') + ":" + 
+                String(now.getMinutes()).padStart(2, '0') + ":" + 
+                String(now.getSeconds()).padStart(2, '0');
+
+            const dayIndex = now.getDay(); 
+            const dayNameEng = daysMap[dayIndex];
+            document.getElementById('current-day').innerText = daysUa[dayIndex];
+
+            const currentWeekType = getStudyWeek(now);
+            document.getElementById('week-type').innerText = currentWeekType + "-й навчальний тиждень";
+
+            let currentLessonObj = null;
+            let nextLessonObj = null;
+            let timerLabel = "До початку пар:";
+            let targetTime = null;
+
+            function findLessonForSlot(slotNumber) {
+                const lessons7 = timetable[savedSub7]?.[currentWeekType]?.[dayNameEng] || [];
+                let lesson = lessons7.find(l => l.number === slotNumber);
+                
+                if (lesson) {
+                    if (lesson.subject.includes('[група')) {
+                        if (!lesson.subject.toLowerCase().includes('[' + savedSub5.toLowerCase() + ']')) {
+                            return null; 
+                        }
+                    }
+                    return lesson;
+                }
+
+                for (const subKey in timetable) {
+                    const altLessons = timetable[subKey]?.[currentWeekType]?.[dayNameEng] || [];
+                    const altLesson = altLessons.find(l => l.number === slotNumber);
+                    if (altLesson) {
+                        if (altLesson.subject.includes('[ЛЕКЦІЯ]')) {
+                            return altLesson; 
+                        }
+                        if (altLesson.subject.includes('[група') && altLesson.subject.toLowerCase().includes('[' + savedSub5.toLowerCase() + ']')) {
+                            return altLesson;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            for (let i = 0; i < lessonsTime.length; i++) {
+                const slot = lessonsTime[i];
+                const start = parseTime(slot.start);
+                const end = parseTime(slot.end);
+
+                if (now >= start && now <= end) {
+                    currentLessonObj = findLessonForSlot(slot.number);
+                    targetTime = end;
+                    timerLabel = "До кінця пари:";
+                    
+                    for (let j = i + 1; j < lessonsTime.length; j++) {
+                        nextLessonObj = findLessonForSlot(lessonsTime[j].number);
+                        if (nextLessonObj) break;
+                    }
+                    break;
+                } else if (now < start) {
+                    nextLessonObj = findLessonForSlot(slot.number);
+                    if (nextLessonObj) {
+                        targetTime = start;
+                        timerLabel = "До початку пари:";
+                        break;
+                    }
+                }
+            }
+
+            if (!nextLessonObj && now > parseTime(lessonsTime[lessonsTime.length - 1].end)) {
+                timerLabel = "Пари на сьогодні завершено";
+                document.getElementById('countdown').style.display = 'none';
+                document.getElementById('timer-label').innerText = timerLabel;
+            } else {
+                document.getElementById('countdown').style.display = 'block';
+                document.getElementById('timer-label').innerText = timerLabel;
+            }
+
+            if (currentLessonObj) {
+                document.getElementById('current-lesson').innerText = "(" + currentLessonObj.number + ") " + currentLessonObj.subject;
+                document.getElementById('current-auditory').innerText = currentLessonObj.auditory;
+                document.getElementById('current-teacher').innerText = currentLessonObj.teacher;
+            } else {
+                document.getElementById('current-lesson').innerText = "Немає пари (перерва/вікно)";
+                document.getElementById('current-auditory').innerText = "--";
+                document.getElementById('current-teacher').innerText = "--";
+            }
+
+            if (nextLessonObj) {
+                document.getElementById('next-lesson').innerText = "(" + nextLessonObj.number + ") " + nextLessonObj.subject;
+                document.getElementById('next-auditory').innerText = nextLessonObj.auditory;
+                document.getElementById('next-teacher').innerText = nextLessonObj.teacher;
+            } else {
+                document.getElementById('next-lesson').innerText = "Немає";
+                document.getElementById('next-auditory').innerText = "--";
+                document.getElementById('next-teacher').innerText = "--";
+            }
+
+            if (targetTime) {
+                const diff = targetTime - now;
+                if (diff > 0) {
+                    const mins = Math.floor(diff / 1000 / 60);
+                    const secs = Math.floor((diff / 1000) % 60);
+                    document.getElementById('countdown').innerText = 
+                        String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+                }
+            }
+        }
+
+        updateWidget();
+        setInterval(updateWidget, 1000);
+    </script>
+</body>
+</html>
